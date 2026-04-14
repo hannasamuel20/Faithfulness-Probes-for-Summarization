@@ -27,7 +27,9 @@ def load_model(model_name, device, num_gpus=1, max_memory=45, auth_token=None):
     Returns:
         (model, tokenizer)
     """
-    kwargs = {}
+    # Force eager attention — SDPA / flash-attn silently return None for
+    # output_attentions=True, which breaks our feature extraction.
+    kwargs = {"attn_implementation": "eager"}
     if device == "cuda":
         kwargs["torch_dtype"] = torch.float16
         if num_gpus > 1:
