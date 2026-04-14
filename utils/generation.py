@@ -225,7 +225,9 @@ def teacher_force_and_extract(
         token_id = summary_ids[t]
 
         for l in range(num_layers):
-            attn = attentions[l][0, :, pos, :]        # (heads, key_len)
+            # Cast to fp32 — fp16 underflows below ~6e-5, so clamp(1e-10)
+            # becomes clamp(0) and entropy log(0) → -inf → NaN.
+            attn = attentions[l][0, :, pos, :].float()  # (heads, key_len)
 
             # Lookback ratio
             attn_ctx = attn[:, :context_length].mean(dim=-1)

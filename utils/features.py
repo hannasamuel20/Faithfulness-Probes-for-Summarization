@@ -46,8 +46,10 @@ def extract_step_features(attentions, logits, next_token_id, context_length):
     attn_entropy = torch.zeros(num_layers, num_heads)
 
     for l in range(num_layers):
-        # (heads, key_len) — attention weights FROM the last query position
-        attn = attentions[l][0, :, -1, :]
+        # (heads, key_len) — attention weights FROM the last query position.
+        # Cast to fp32: fp16 underflows below ~6e-5 so clamp(1e-10) becomes
+        # clamp(0) and log(0) → -inf → NaN in the entropy term.
+        attn = attentions[l][0, :, -1, :].float()
 
         # ── Lookback ratio ──
         # .mean() normalises by segment length → size-independent ratio
