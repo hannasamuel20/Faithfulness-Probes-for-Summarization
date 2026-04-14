@@ -1,0 +1,12 @@
+torch>=2.0.0
+transformers>=4.36.0
+datasets
+accelerate
+sentencepiece
+protobuf
+tiktoken
+numpy
+pandas
+scipy
+scikit-learn
+tqdm
