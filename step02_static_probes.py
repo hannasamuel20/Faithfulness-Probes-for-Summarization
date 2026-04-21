@@ -165,8 +165,10 @@ def print_result(r):
 
 def print_top_features(results, train_examples, feature_set="all", top_k=15):
     """Inspect the `all` probe's most-informative features (|coef|)."""
+    # Grab C from any trained probe (random baseline stores C=None, skip it).
+    C = next((r["C"] for r in results if r.get("C") is not None), 1.0)
     X_tr, y_tr = build_XY(train_examples, feature_set)
-    clf, scaler = fit_lr_probe(X_tr, y_tr, C=results[0]["C"] if results else 1.0)
+    clf, scaler = fit_lr_probe(X_tr, y_tr, C=C)
     coefs = clf.coef_[0]
     abs_coefs = np.abs(coefs)
 
