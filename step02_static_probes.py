@@ -43,7 +43,10 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 
 from utils.aggregation import FEATURE_SETS, build_feature_vector
-from utils.evaluation import evaluate_scores, bootstrap_auroc, format_row
+from utils.evaluation import (
+    evaluate_scores, bootstrap_auroc, format_row,
+    format_paper_row, format_paper_header,
+)
 
 
 # ────────────────────────────────────────────────────────────────────────
@@ -101,8 +104,15 @@ def random_baseline(y_true, seed=0):
 #  Runner
 # ────────────────────────────────────────────────────────────────────────
 
-def run_feature_set(name, train_examples, test_examples, C, bootstrap, seed):
-    """Fit LR on train examples, evaluate on test. Returns a results dict."""
+def run_feature_set(name, train_examples, test_examples, C, bootstrap, seed,
+                    transfer_examples=None):
+    """
+    Fit LR on train examples, evaluate on test (and optionally on a
+    transfer set — a second .pt from a different task, e.g. XSum).
+
+    Returns a results dict with `train`, `test`, and optional `transfer`
+    metric blocks — matching Lookback-Lens Table 2 layout.
+    """
     X_tr, y_tr = build_XY(train_examples, name)
     X_te, y_te = build_XY(test_examples, name)
 
@@ -113,6 +123,12 @@ def run_feature_set(name, train_examples, test_examples, C, bootstrap, seed):
     m_tr = evaluate_scores(y_tr, s_tr)
     m_te = evaluate_scores(y_te, s_te)
 
+    m_transfer = None
+    if transfer_examples:
+        X_xfer, y_xfer = build_XY(transfer_examples, name)
+        s_xfer = score_lr_probe(clf, scaler, X_xfer)
+        m_transfer = evaluate_scores(y_xfer, s_xfer)
+
     ci = None
     if bootstrap and bootstrap > 0:
         ci = bootstrap_auroc(y_te, s_te, n_boot=bootstrap, seed=seed)
@@ -122,25 +138,36 @@ def run_feature_set(name, train_examples, test_examples, C, bootstrap, seed):
         "feat_dim":    int(X_tr.shape[1]),
         "train":       m_tr,
         "test":        m_te,
+        "transfer":    m_transfer,
         "test_auroc_ci95": ci,
         "C":           C,
         "n_train":     int(len(y_tr)),
         "n_test":      int(len(y_te)),
+        "n_transfer":  int(len(y_xfer)) if transfer_examples else 0,
     }
 
 
-def run_random_baseline(test_examples, seed):
+def run_random_baseline(test_examples, seed, transfer_examples=None):
     y_te = np.array([e["label"] for e in test_examples], dtype=int)
     s_te = random_baseline(y_te, seed=seed)
+    m_transfer = None
+    n_transfer = 0
+    if transfer_examples:
+        y_xfer = np.array([e["label"] for e in transfer_examples], dtype=int)
+        s_xfer = random_baseline(y_xfer, seed=seed + 1)
+        m_transfer = evaluate_scores(y_xfer, s_xfer)
+        n_transfer = int(len(y_xfer))
     return {
         "feature_set": "random",
         "feat_dim":    0,
         "train":       None,
         "test":        evaluate_scores(y_te, s_te),
+        "transfer":    m_transfer,
         "test_auroc_ci95": None,
         "C":           None,
         "n_train":     0,
         "n_test":      int(len(y_te)),
+        "n_transfer":  n_transfer,
     }
 
 
@@ -239,6 +266,12 @@ def parse_args():
                    help="If set, dump results JSON here.")
     p.add_argument("--show-top-features", action="store_true",
                    help="Print the top-|coef| features in the `all` probe.")
+    p.add_argument("--transfer-features", default=None,
+                   help="Second features .pt file (e.g. XSum) to evaluate "
+                        "each trained probe on, for Transfer-column AUROC "
+                        "matching Lookback Lens Table 2.")
+    p.add_argument("--transfer-label", default="XSum",
+                   help="Short name for the transfer task (header only).")
     p.add_argument("--seed", type=int, default=0)
     return p.parse_args()
 
@@ -258,12 +291,19 @@ def main():
             f"Check the `split` field in your features file."
         )
 
+    # Optional transfer set — a second features file from a different task.
+    transfer_ex = None
+    if args.transfer_features:
+        print(f"\nLoading transfer features: {args.transfer_features}")
+        transfer_ex = load_examples(args.transfer_features)
+        print(f"  Loaded {len(transfer_ex)} labeled transfer examples.")
+
     print_header(train_ex, test_ex, args.C)
 
     results = []
 
     # Random baseline first (no training).
-    r = run_random_baseline(test_ex, seed=args.seed)
+    r = run_random_baseline(test_ex, seed=args.seed, transfer_examples=transfer_ex)
     results.append(r)
     print_result(r)
 
@@ -273,7 +313,8 @@ def main():
             print(f"  [skip] unknown feature set: {name}")
             continue
         r = run_feature_set(name, train_ex, test_ex,
-                            C=args.C, bootstrap=args.bootstrap, seed=args.seed)
+                            C=args.C, bootstrap=args.bootstrap, seed=args.seed,
+                            transfer_examples=transfer_ex)
         results.append(r)
         print_result(r)
 
@@ -282,7 +323,22 @@ def main():
 
     maybe_save_results(results, args.results_path)
 
-    # Headline comparison — the two numbers the proposal explicitly asks about.
+    # ─ Lookback-Lens Table-2-style summary (AUROC ×100) ─
+    print()
+    print("═" * 96)
+    print("  Summary — Lookback-Lens Table 2 format (AUROC ×100)")
+    print(f"  Source = AggreFact (train on cut=val, test on cut=test) | "
+          f"Transfer = {args.transfer_label if transfer_ex else '(disabled)'}")
+    print("═" * 96)
+    print(format_paper_header(source_label="AggF", target_label=args.transfer_label))
+    print("  " + "-" * 60)
+    for r in results:
+        tr = r["train"]["auroc"] if r["train"] else None
+        te = r["test"]["auroc"] if r["test"] else None
+        xf = r["transfer"]["auroc"] if r.get("transfer") else None
+        print(format_paper_row(r["feature_set"], tr, te, xf))
+
+    # ─ Headline comparison ─
     lens = next((r for r in results if r["feature_set"] == "lookback_lens"), None)
     allr = next((r for r in results if r["feature_set"] == "all"), None)
     if lens and allr:
@@ -290,10 +346,10 @@ def main():
         print("═" * 96)
         print("  Headline: Lookback-Lens baseline vs. combined features")
         print("═" * 96)
-        print(f"  lookback_lens AUROC = {lens['test']['auroc']:.4f}")
-        print(f"  all-features  AUROC = {allr['test']['auroc']:.4f}")
-        delta = allr['test']['auroc'] - lens['test']['auroc']
-        print(f"  Δ AUROC             = {delta:+.4f}")
+        print(f"  lookback_lens test AUROC = {100*lens['test']['auroc']:5.1f}")
+        print(f"  all-features  test AUROC = {100*allr['test']['auroc']:5.1f}")
+        delta = 100 * (allr['test']['auroc'] - lens['test']['auroc'])
+        print(f"  Δ AUROC                  = {delta:+5.1f}")
 
 
 if __name__ == "__main__":

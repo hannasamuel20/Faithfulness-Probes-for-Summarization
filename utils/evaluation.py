@@ -93,7 +93,7 @@ def bootstrap_auroc(y_true, y_score, n_boot=1000, seed=0):
 
 def format_row(name: str, metrics: dict, dim: int | None = None,
                ci: tuple[float, float] | None = None) -> str:
-    """Pretty one-line summary row for console output."""
+    """Pretty one-line summary row for console output (detailed)."""
     d = f" dim={dim:<5d}" if dim is not None else ""
     ci_str = f"  [{ci[0]:.3f}, {ci[1]:.3f}]" if ci is not None else ""
     return (f"  {name:22s}{d}  "
@@ -101,3 +101,45 @@ def format_row(name: str, metrics: dict, dim: int | None = None,
             f"AUPRC={metrics['auprc']:.4f}  "
             f"F1@opt={metrics['f1_opt']:.4f}  "
             f"(thr={metrics['thr_opt']:+.3f}, n={metrics['n']})")
+
+
+# ────────────────────────────────────────────────────────────────────────
+#  Lookback-Lens-style reporting (Chuang et al. 2024, Table 2)
+#
+#  AUROC ×100, one decimal place, three columns:
+#      Train     — source-task train-split AUROC
+#      Test      — source-task held-out AUROC
+#      Transfer  — out-of-domain target-task AUROC (optional)
+#
+#  In our AggreFact setup: Train = cut=val, Test = cut=test, Transfer = XSum.
+# ────────────────────────────────────────────────────────────────────────
+
+def _fmt_pct(x):
+    """Paper format: AUROC ×100, one decimal, or '--' for missing."""
+    if x is None or (isinstance(x, float) and np.isnan(x)):
+        return "  --"
+    return f"{100.0 * x:5.1f}"
+
+
+def format_paper_row(name: str,
+                     train_auroc: float | None,
+                     test_auroc: float | None,
+                     transfer_auroc: float | None) -> str:
+    """Single row for the Lookback-Lens-style summary table."""
+    return (f"  {name:22s}  "
+            f"{_fmt_pct(train_auroc)}    "
+            f"{_fmt_pct(test_auroc)}    "
+            f"{_fmt_pct(transfer_auroc)}")
+
+
+def format_paper_header(source_label: str = "Source",
+                        target_label: str = "Target") -> str:
+    """Two-line header matching Lookback Lens Table 2 layout."""
+    return (f"  {'Method':22s}  "
+            f"{'Train':>5s}   "
+            f"{'Test':>5s}   "
+            f"{'Transfer':>5s}\n"
+            f"  {'':22s}  "
+            f"{source_label + ' →':>5s}   "
+            f"{source_label + ' →':>5s}   "
+            f"{source_label + ' → ' + target_label:>5s}")
