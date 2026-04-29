@@ -1,38 +1,20 @@
-# Faithfulness Probes for Summarization 
+# Faithfulness Probes for Summarization
 
-## Step 1
+Detects hallucinations in LLM-generated summaries using white-box probes over LLaMA-2-7B-Chat's internal states. Per-token lookback ratios, attention entropies, and output-logit statistics are extracted and fed into static (logistic regression) and temporal (1D-CNN / BiLSTM) classifiers trained on the AggreFact benchmark.
 
-Extracts three per-token feature families from LLaMA-2-7B-Chat while it
-processes labeled summaries from AggreFact. The output `.pt` file is the
-input to Step 2 (probe training).
-
-**Feature families (per token position `t`):**
-1. **Lookback ratio** — `(L=32, H=32, T)` — attention on context vs. new tokens.
-2. **Attention entropy** — `(L=32, H=32, T)` — Shannon entropy of each head's attention distribution.
-3. **Output logit features** — `(T,)` each: `chosen_prob`, `output_entropy`, `top_margin`.
-
-## 1. Install
+## Setup
 
 ```bash
 pip install -r requirements.txt
 ```
 
-You need a HuggingFace access token for `meta-llama/Llama-2-7b-chat-hf`
-(gated repo). 
-<!-- Get one at https://huggingface.co/settings/tokens after -->
-<!-- accepting the Meta license. -->
+Requires a HuggingFace access token for `meta-llama/Llama-2-7b-chat-hf` (gated repo).
 
-## 2. Data
+Place the AggreFact CSV at `data/aggre_fact_sota.csv`.
 
-Place the AggreFact CSV at `data/aggre_fact_sota.csv`. Required columns:
-`doc`, `summary`, `label`, `dataset`, `model_name`, `cut`, `id`.
+## Step 1 — Feature Extraction
 
-The loader streams the CSV row-by-row (no full materialization).
-
-## 3. Run Step 1: teacher forcing on AggreFact-SOTA
-
-The recommended mode: single forward pass per example with the ground-truth
-summary appended to the prompt (fast, no sampling noise, uses existing labels).
+Runs a teacher-forced forward pass through LLaMA-2-7B-Chat on each AggreFact example and saves per-token lookback ratios, attention entropies, and output-logit features to a `.pt` file.
 
 ```bash
 python step01_extract_features.py \
@@ -43,69 +25,29 @@ python step01_extract_features.py \
     --auth-token hf_XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
-Useful flags:
+## Step 2 — Static Probes
 
-| Flag | Purpose |
-|------|---------|
-| `--split val` / `--split test` | Only process one AggreFact cut. |
-| `--limit 10` | Only process the first 10 examples (quick smoke test). |
-| `--max-doc-tokens 1800` | Truncate long documents to fit LLaMA-2's 4K context. |
-| `--num-gpus 2 --max-memory 45` | Shard across multiple GPUs via `device_map="auto"`. |
-| `--save-every 50` | Checkpoint frequency (examples). |
-
-**Resume:** if `--output-path` already exists, the script loads it and
-skips any `example_id`s already present. Safe to Ctrl-C mid-run.
-
-### Quick debug run
+Trains L2-regularized logistic regression probes on time-aggregated (mean/min/max/var) features and reports AUROC, AUPRC, and F1 on the test split.
 
 ```bash
-python step01_extract_features.py \
-    --data-type aggrefact \
-    --data-path data/aggre_fact_sota.csv \
-    --teacher-forcing --limit 10 \
-    --output-path features_debug.pt \
-    --auth-token hf_XXXX
+python step02_static_probes.py \
+    --features features_aggrefact_sota.pt
 ```
 
-## 4. Inspect the output
+## Step 3 — Temporal Probes
+
+Trains a 1D-CNN or BiLSTM directly on the raw per-token feature sequences, capturing within-span dynamics that static averaging discards.
 
 ```bash
-python inspect_features.py --features features_aggrefact_sota.pt
+# 1D-CNN (default, best single model)
+python step03_temporal_probes.py \
+    --features features_aggrefact_sota.pt \
+    --model cnn \
+    --channels lookback
+
+# BiLSTM over all channels
+python step03_temporal_probes.py \
+    --features features_aggrefact_sota.pt \
+    --model lstm \
+    --channels all
 ```
-
-Prints structure, NaN/Inf checks, label distribution, source-dataset/model
-breakdown, token-length stats, global feature statistics, and most
-importantly, the faithful-vs-hallucinated comparison that verifies the
-signal is going in the expected direction (lookback and chosen_prob should
-be higher for faithful summaries; entropy should be higher for hallucinated).
-
-## 5. Output format
-
-`features_aggrefact_sota.pt` is a dict:
-
-```python
-{
-  "config":   { model_name, data_type, teacher_forcing, max_doc_tokens, ... },
-  "examples": [
-      {
-        "lookback_ratio":        Tensor(L, H, T),
-        "attn_entropy":          Tensor(L, H, T),
-        "logit_chosen_prob":     Tensor(T,),
-        "logit_output_entropy":  Tensor(T,),
-        "logit_top_margin":      Tensor(T,),
-        "label":                 int (1=faithful, 0=hallucinated),
-        "split":                 "val" | "test",
-        "example_id":            str,        # stable across runs
-        "source_dataset":        str,
-        "source_model":          str,
-        "context_length":        int,        # prompt tokens before "#Summary#:"
-        "summary_text":          str,
-        "data_index":            int,
-      },
-      ...
-  ]
-}
-```
-
-`example_id` is the stable key to use in Step 2 for reproducible train/val/test
-splits. `config` records the extraction run so the `.pt` is self-describing.
