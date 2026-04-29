@@ -12,7 +12,7 @@ Requires a HuggingFace access token for `meta-llama/Llama-2-7b-chat-hf` (gated r
 
 Place the AggreFact CSV at `data/aggre_fact_sota.csv`.
 
-## Step 1 — Feature Extraction
+## Step 1: Feature Extraction
 
 Runs a teacher-forced forward pass through LLaMA-2-7B-Chat on each AggreFact example and saves per-token lookback ratios, attention entropies, and output-logit features to a `.pt` file.
 
@@ -25,7 +25,7 @@ python step01_extract_features.py \
     --auth-token hf_XXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
-## Step 2 — Static Probes
+## Step 2: Static Probes
 
 Trains L2-regularized logistic regression probes on time-aggregated (mean/min/max/var) features and reports AUROC, AUPRC, and F1 on the test split.
 
@@ -34,7 +34,7 @@ python step02_static_probes.py \
     --features features_aggrefact_sota.pt
 ```
 
-## Step 3 — Temporal Probes
+## Step 3: Temporal Probes
 
 Trains a 1D-CNN or BiLSTM directly on the raw per-token feature sequences, capturing within-span dynamics that static averaging discards.
 
