@@ -18,3 +18,4 @@ results/*.pt
 results/seed_variance/*.pt
 data/xsum/hf_cache/
 .env
+*.pdf

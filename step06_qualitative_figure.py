@@ -8,7 +8,10 @@ ratio averaged over all layers and heads.
 
 import argparse
 import os
+<<<<<<< HEAD
 import textwrap
+=======
+>>>>>>> 40a3f88 (Complete XSum transfer and error analysis tooling)
 
 import matplotlib
 
@@ -35,10 +38,14 @@ def sigmoid(x):
 def load_checkpoint(path, device):
     ckpt = torch.load(path, map_location=device, weights_only=False)
     if "state_dict" not in ckpt:
+<<<<<<< HEAD
         raise ValueError(
             "Re-run step03 with --save-model to create a metadata checkpoint."
         )
 
+=======
+        raise ValueError("Re-run step03 with --save-model to create a metadata checkpoint.")
+>>>>>>> 40a3f88 (Complete XSum transfer and error analysis tooling)
     model = make_model(
         ckpt["model"],
         ckpt["in_channels"],
@@ -77,6 +84,7 @@ def pick_examples(examples, scores, threshold):
         for i in range(len(examples))
         if y[i] == 0 and not pred_faithful[i]
     ]
+<<<<<<< HEAD
 
     if not faithful_candidates or not hallu_candidates:
         raise ValueError(
@@ -84,11 +92,20 @@ def pick_examples(examples, scores, threshold):
         )
 
     return max(faithful_candidates)[1], max(hallu_candidates)[1]
+=======
+    if not faithful_candidates or not hallu_candidates:
+        raise ValueError("Could not find both faithful and hallucinated confident correct examples.")
+    return (
+        max(faithful_candidates)[1],
+        max(hallu_candidates)[1],
+    )
+>>>>>>> 40a3f88 (Complete XSum transfer and error analysis tooling)
 
 
 def plot_trace(ax, ex, score, title):
     trace = ex["lookback_ratio"].mean(dim=(0, 1)).detach().cpu().numpy()
     p_hallu = sigmoid(-score)
+<<<<<<< HEAD
 
     ax.plot(np.arange(len(trace)), trace, color="#2f6f9f", linewidth=1.5)
     ax.set_title(
@@ -116,13 +133,34 @@ def plot_trace(ax, ex, score, title):
         fontsize=7.5,
         va="top",
         ha="left",
+=======
+    ax.plot(np.arange(len(trace)), trace, color="#2f6f9f", linewidth=1.5)
+    ax.set_title(f"{title}  |  predicted P(hallucinated)={p_hallu:.2f}", fontsize=10)
+    ax.set_ylabel("Lookback ratio")
+    ax.set_xlim(0, max(len(trace) - 1, 1))
+    ax.grid(True, axis="y", linewidth=0.4, alpha=0.35)
+    snippet = str(ex.get("summary_text", "")).replace("\n", " ")
+    if len(snippet) > 130:
+        snippet = snippet[:127] + "..."
+    ax.text(
+        0.01, 0.02, snippet,
+        transform=ax.transAxes,
+        fontsize=7,
+        va="bottom",
+        ha="left",
+        bbox={"facecolor": "white", "edgecolor": "none", "alpha": 0.8, "pad": 2},
+>>>>>>> 40a3f88 (Complete XSum transfer and error analysis tooling)
     )
 
 
 def parse_args():
+<<<<<<< HEAD
     p = argparse.ArgumentParser(
         description="Step 6: qualitative lookback trace figure."
     )
+=======
+    p = argparse.ArgumentParser(description="Step 6: qualitative lookback trace figure.")
+>>>>>>> 40a3f88 (Complete XSum transfer and error analysis tooling)
     p.add_argument("--features", default="results/features_aggrefact_sota.pt")
     p.add_argument("--model-path", default="results/cnn_lookback.pt")
     p.add_argument("--pdf", default="results/lookback_trace_figure.pdf")
@@ -136,6 +174,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+<<<<<<< HEAD
 
     device = torch.device(
         args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu"
@@ -145,6 +184,12 @@ def main():
     examples = load_examples(args.features, require_split=True)
     _, test_ex = split_examples(examples, args.train_split, args.test_split)
 
+=======
+    device = torch.device(args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu")
+    ckpt, model = load_checkpoint(args.model_path, device)
+    examples = load_examples(args.features, require_split=True)
+    _, test_ex = split_examples(examples, args.train_split, args.test_split)
+>>>>>>> 40a3f88 (Complete XSum transfer and error analysis tooling)
     _, scores = score_examples(
         model,
         test_ex,
@@ -153,6 +198,7 @@ def main():
         args.batch_size,
         device,
     )
+<<<<<<< HEAD
 
     threshold = ckpt.get("threshold", 0.0)
     faithful_i, hallu_i = pick_examples(test_ex, scores, threshold)
@@ -181,6 +227,16 @@ def main():
         left=0.12,
         right=0.98,
     )
+=======
+    threshold = ckpt.get("threshold", 0.0)
+    faithful_i, hallu_i = pick_examples(test_ex, scores, threshold)
+
+    fig, axes = plt.subplots(2, 1, figsize=(6, 4), sharex=False)
+    plot_trace(axes[0], test_ex[faithful_i], scores[faithful_i], "Faithful example")
+    plot_trace(axes[1], test_ex[hallu_i], scores[hallu_i], "Hallucinated example")
+    axes[1].set_xlabel("Summary token position")
+    fig.tight_layout()
+>>>>>>> 40a3f88 (Complete XSum transfer and error analysis tooling)
 
     os.makedirs(os.path.dirname(args.pdf) or ".", exist_ok=True)
     fig.savefig(args.pdf, bbox_inches="tight")
@@ -190,4 +246,8 @@ def main():
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     main()
+=======
+    main()
+>>>>>>> 40a3f88 (Complete XSum transfer and error analysis tooling)

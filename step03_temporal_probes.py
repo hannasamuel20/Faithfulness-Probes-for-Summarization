@@ -44,9 +44,9 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
 from utils.aggregation import (
+    temporal_lookback_matrix,
     temporal_all_matrix,
     temporal_lookback_entropy_matrix,
-    temporal_lookback_matrix,
 )
 from utils.evaluation import (
     evaluate_scores, bootstrap_auroc, format_row,
