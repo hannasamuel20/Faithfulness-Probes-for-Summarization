@@ -218,7 +218,7 @@ F1 thresholds are now selected on a validation slice and applied to test/transfe
 
 Temporal `lookback+entropy` is now a first-class channel option implemented in `utils/aggregation.py` and exposed through `CHANNEL_BUILDERS`.
 
-## 7. Known Caveats and Gotchas
+## 7. Known Caveats
 
 The teacher-forcing protocol differs from Chuang et al.'s original free-form-then-judge setup; this affects how the reported +4.6 AUROC gap should be interpreted.
 
@@ -240,8 +240,3 @@ Layer/head analysis could identify whether transfer failure, if any, is localize
 
 Classifier-guided decoding from the proposal remains a stretch goal. Low severity for the current report unless all transfer/error analysis finishes early.
 
-## 9. How to Get Help
-
-Start with `inspect_features.py` if AUROC looks strange, especially section 7. If XSum examples disappear in transfer, check `data_loaders/jsonl.py` and whether labels are normalized. If temporal checkpoint loading fails, check that Step 3 was run after this branch's checkpoint metadata update.
-
-Ownership by area: feature extraction is centered in `step01_extract_features.py` and `utils/features.py`; static probe work is in `step02_static_probes.py`; temporal modeling is in `step03_temporal_probes.py` and `models/temporal_probes.py`; error analysis/figures are in Steps 5/6. Use `git blame` for finer ownership before making larger changes.
