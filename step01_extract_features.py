@@ -208,6 +208,7 @@ def main():
 
         # ── Attach metadata (no full_prompt — it bloats the .pt) ──
         feats["data_index"] = idx
+        feats["document_text"] = document
         feats["summary_text"] = sample.get("summary", "")
         if "label" in sample:
             feats["label"] = sample["label"]

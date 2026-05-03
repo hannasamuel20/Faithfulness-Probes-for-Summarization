@@ -42,7 +42,11 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
-from utils.aggregation import temporal_lookback_matrix, temporal_all_matrix
+from utils.aggregation import (
+    temporal_lookback_matrix,
+    temporal_all_matrix,
+    temporal_lookback_entropy_matrix,
+)
 from utils.evaluation import (
     evaluate_scores, bootstrap_auroc, format_row,
     format_paper_row, format_paper_header,
@@ -55,8 +59,9 @@ from models.temporal_probes import LookbackCNN, LookbackLSTM, count_params
 # ────────────────────────────────────────────────────────────────────────
 
 CHANNEL_BUILDERS = {
-    "lookback": temporal_lookback_matrix,    # (L*H, T)
-    "all":      temporal_all_matrix,         # (2*L*H + 3, T)
+    "lookback":          temporal_lookback_matrix,          # (L*H, T)
+    "lookback+entropy":  temporal_lookback_entropy_matrix,  # (2*L*H, T)
+    "all":               temporal_all_matrix,               # (2*L*H + 3, T)
 }
 
 
@@ -98,10 +103,13 @@ def collate_pad(batch):
     return X, mask, y
 
 
-def load_examples(path):
+def load_examples(path, require_split=True):
     blob = torch.load(path, weights_only=False)
     examples = blob["examples"] if isinstance(blob, dict) else blob
-    return [e for e in examples if "label" in e and "split" in e]
+    return [
+        e for e in examples
+        if "label" in e and (not require_split or "split" in e)
+    ]
 
 
 def split_examples(examples, train_split="val", test_split="test"):
@@ -219,7 +227,7 @@ def run(args):
     transfer_ex = None
     if args.transfer_features:
         print(f"Loading transfer features: {args.transfer_features}")
-        transfer_ex = load_examples(args.transfer_features)
+        transfer_ex = load_examples(args.transfer_features, require_split=False)
         print(f"  Loaded {len(transfer_ex)} labeled transfer examples.")
 
     # ── probe inputs ──
@@ -261,15 +269,18 @@ def run(args):
     )
 
     # ── eval (Train on the FULL train cut to match LR setup in step02) ──
+    y_val, s_val = score_loader(model, val_loader, device)
+    m_val = evaluate_scores(y_val, s_val)
+    val_threshold = m_val["thr_opt"]
     y_tr, s_tr = score_loader(model, full_train_loader, device)
     y_te, s_te = score_loader(model, te_loader, device)
-    m_tr = evaluate_scores(y_tr, s_tr)
-    m_te = evaluate_scores(y_te, s_te)
+    m_tr = evaluate_scores(y_tr, s_tr, fixed_threshold=val_threshold)
+    m_te = evaluate_scores(y_te, s_te, fixed_threshold=val_threshold)
 
     m_xf = None
     if xf_loader:
         y_xf, s_xf = score_loader(model, xf_loader, device)
-        m_xf = evaluate_scores(y_xf, s_xf)
+        m_xf = evaluate_scores(y_xf, s_xf, fixed_threshold=val_threshold)
 
     ci = bootstrap_auroc(y_te, s_te, n_boot=args.bootstrap, seed=args.seed) \
         if args.bootstrap > 0 else None
@@ -302,6 +313,7 @@ def run(args):
         payload = {
             "args": vars(args),
             "best_val_auroc": float(best_val),
+            "threshold_selection": m_val,
             "train": m_tr,
             "test": m_te,
             "transfer": m_xf,
@@ -317,7 +329,18 @@ def run(args):
         print(f"\n  Saved results → {args.results_path}")
 
     if args.save_model:
-        torch.save(model.state_dict(), args.save_model)
+        os.makedirs(os.path.dirname(args.save_model) or ".", exist_ok=True)
+        torch.save({
+            "state_dict": model.state_dict(),
+            "model": args.model,
+            "channels": args.channels,
+            "in_channels": int(in_channels),
+            "hidden": args.hidden,
+            "dropout": args.dropout,
+            "max_T": args.max_T,
+            "threshold": float(val_threshold),
+            "seed": args.seed,
+        }, args.save_model)
         print(f"  Saved model   → {args.save_model}")
 
 
@@ -337,6 +360,7 @@ def parse_args():
     p.add_argument("--model", choices=["cnn", "lstm"], default="cnn")
     p.add_argument("--channels", choices=list(CHANNEL_BUILDERS), default="lookback",
                    help="lookback: just lookback ratio (L*H). "
+                        "lookback+entropy: + attn_entropy. "
                         "all: + attn_entropy + 3 logit streams.")
     p.add_argument("--hidden", type=int, default=64)
     p.add_argument("--dropout", type=float, default=0.3)

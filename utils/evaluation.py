@@ -38,9 +38,18 @@ def f1_at_optimal_threshold(y_true, y_score):
     return float(f1[best]), float(thr[best])
 
 
-def evaluate_scores(y_true, y_score):
+def f1_at_threshold(y_true, y_score, threshold):
+    """Compute faithful-class F1 at a preselected score threshold."""
+    y_true = np.asarray(y_true).astype(int)
+    y_score = np.asarray(y_score).astype(float)
+    y_pred = (y_score >= threshold).astype(int)
+    return float(f1_score(y_true, y_pred, zero_division=0))
+
+
+def evaluate_scores(y_true, y_score, fixed_threshold=None):
     """
     Returns a dict with auroc, auprc, f1_opt, thr_opt, n, pos_rate.
+    If fixed_threshold is supplied, also reports F1 at that threshold.
 
     y_score should be a continuous confidence the example is faithful
     (e.g. logistic regression decision_function or predict_proba[:, 1]).
@@ -64,6 +73,9 @@ def evaluate_scores(y_true, y_score):
     f1_opt, thr_opt = f1_at_optimal_threshold(y_true, y_score)
     out["f1_opt"] = f1_opt
     out["thr_opt"] = thr_opt
+    if fixed_threshold is not None:
+        out["f1_at_val_threshold"] = f1_at_threshold(y_true, y_score, fixed_threshold)
+        out["val_threshold"] = float(fixed_threshold)
     return out
 
 

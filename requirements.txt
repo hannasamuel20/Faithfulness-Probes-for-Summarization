@@ -10,3 +10,4 @@ pandas
 scipy
 scikit-learn
 tqdm
+matplotlib

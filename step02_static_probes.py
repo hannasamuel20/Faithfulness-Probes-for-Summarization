@@ -40,6 +40,7 @@ import os
 import numpy as np
 import torch
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from utils.aggregation import FEATURE_SETS, build_feature_vector
@@ -53,11 +54,14 @@ from utils.evaluation import (
 #  Data loading
 # ────────────────────────────────────────────────────────────────────────
 
-def load_examples(path):
+def load_examples(path, require_split=True):
     blob = torch.load(path, weights_only=False)
     examples = blob["examples"] if isinstance(blob, dict) else blob
-    # Drop anything we can't split or label.
-    examples = [e for e in examples if "label" in e and "split" in e]
+    # Source examples need split labels; transfer examples only need labels.
+    examples = [
+        e for e in examples
+        if "label" in e and (not require_split or "split" in e)
+    ]
     return examples
 
 
@@ -66,6 +70,21 @@ def split_examples(examples, train_split="val", test_split="test"):
     train = [e for e in examples if e["split"] == train_split]
     test = [e for e in examples if e["split"] == test_split]
     return train, test
+
+
+def split_train_threshold_examples(train_examples, threshold_frac=0.15, seed=0):
+    """Hold out a small source-train slice for threshold selection only."""
+    if threshold_frac <= 0:
+        return train_examples, train_examples
+    y = [e["label"] for e in train_examples]
+    if len(set(y)) < 2 or len(train_examples) < 4:
+        return train_examples, train_examples
+    return train_test_split(
+        train_examples,
+        test_size=threshold_frac,
+        stratify=y,
+        random_state=seed,
+    )
 
 
 def build_XY(examples, feature_set):
@@ -105,7 +124,8 @@ def random_baseline(y_true, seed=0):
 # ────────────────────────────────────────────────────────────────────────
 
 def run_feature_set(name, train_examples, test_examples, C, bootstrap, seed,
-                    transfer_examples=None):
+                    transfer_examples=None, threshold_frac=0.15,
+                    return_model=False):
     """
     Fit LR on train examples, evaluate on test (and optionally on a
     transfer set — a second .pt from a different task, e.g. XSum).
@@ -113,38 +133,53 @@ def run_feature_set(name, train_examples, test_examples, C, bootstrap, seed,
     Returns a results dict with `train`, `test`, and optional `transfer`
     metric blocks — matching Lookback-Lens Table 2 layout.
     """
+    fit_examples, threshold_examples = split_train_threshold_examples(
+        train_examples, threshold_frac=threshold_frac, seed=seed
+    )
+    X_fit, y_fit = build_XY(fit_examples, name)
+    X_thr, y_thr = build_XY(threshold_examples, name)
     X_tr, y_tr = build_XY(train_examples, name)
     X_te, y_te = build_XY(test_examples, name)
 
-    clf, scaler = fit_lr_probe(X_tr, y_tr, C=C, seed=seed)
+    clf, scaler = fit_lr_probe(X_fit, y_fit, C=C, seed=seed)
+    s_thr = score_lr_probe(clf, scaler, X_thr)
+    threshold_metrics = evaluate_scores(y_thr, s_thr)
+    val_threshold = threshold_metrics["thr_opt"]
+
     s_tr = score_lr_probe(clf, scaler, X_tr)
     s_te = score_lr_probe(clf, scaler, X_te)
 
-    m_tr = evaluate_scores(y_tr, s_tr)
-    m_te = evaluate_scores(y_te, s_te)
+    m_tr = evaluate_scores(y_tr, s_tr, fixed_threshold=val_threshold)
+    m_te = evaluate_scores(y_te, s_te, fixed_threshold=val_threshold)
 
     m_transfer = None
     if transfer_examples:
         X_xfer, y_xfer = build_XY(transfer_examples, name)
         s_xfer = score_lr_probe(clf, scaler, X_xfer)
-        m_transfer = evaluate_scores(y_xfer, s_xfer)
+        m_transfer = evaluate_scores(y_xfer, s_xfer, fixed_threshold=val_threshold)
 
     ci = None
     if bootstrap and bootstrap > 0:
         ci = bootstrap_auroc(y_te, s_te, n_boot=bootstrap, seed=seed)
 
-    return {
+    result = {
         "feature_set": name,
         "feat_dim":    int(X_tr.shape[1]),
         "train":       m_tr,
         "test":        m_te,
+        "threshold_selection": threshold_metrics,
         "transfer":    m_transfer,
         "test_auroc_ci95": ci,
         "C":           C,
+        "n_fit":       int(len(y_fit)),
+        "n_threshold": int(len(y_thr)),
         "n_train":     int(len(y_tr)),
         "n_test":      int(len(y_te)),
         "n_transfer":  int(len(y_xfer)) if transfer_examples else 0,
     }
+    if return_model:
+        return result, clf, scaler
+    return result
 
 
 def run_random_baseline(test_examples, seed, transfer_examples=None):
@@ -190,12 +225,8 @@ def print_result(r):
     print(format_row(r["feature_set"], r["test"], dim=r["feat_dim"], ci=ci))
 
 
-def print_top_features(results, train_examples, feature_set="all", top_k=15):
+def print_top_features(clf, train_examples, feature_set="all", top_k=15):
     """Inspect the `all` probe's most-informative features (|coef|)."""
-    # Grab C from any trained probe (random baseline stores C=None, skip it).
-    C = next((r["C"] for r in results if r.get("C") is not None), 1.0)
-    X_tr, y_tr = build_XY(train_examples, feature_set)
-    clf, scaler = fit_lr_probe(X_tr, y_tr, C=C)
     coefs = clf.coef_[0]
     abs_coefs = np.abs(coefs)
 
@@ -273,6 +304,8 @@ def parse_args():
     p.add_argument("--transfer-label", default="XSum",
                    help="Short name for the transfer task (header only).")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--threshold-frac", type=float, default=0.15,
+                   help="Fraction of train-split held out for F1 threshold selection.")
     return p.parse_args()
 
 
@@ -295,7 +328,7 @@ def main():
     transfer_ex = None
     if args.transfer_features:
         print(f"\nLoading transfer features: {args.transfer_features}")
-        transfer_ex = load_examples(args.transfer_features)
+        transfer_ex = load_examples(args.transfer_features, require_split=False)
         print(f"  Loaded {len(transfer_ex)} labeled transfer examples.")
 
     print_header(train_ex, test_ex, args.C)
@@ -308,18 +341,28 @@ def main():
     print_result(r)
 
     sets_to_run = args.feature_sets or list(FEATURE_SETS.keys())
+    top_feature_model = None
     for name in sets_to_run:
         if name not in FEATURE_SETS:
             print(f"  [skip] unknown feature set: {name}")
             continue
-        r = run_feature_set(name, train_ex, test_ex,
-                            C=args.C, bootstrap=args.bootstrap, seed=args.seed,
-                            transfer_examples=transfer_ex)
+        out = run_feature_set(
+            name, train_ex, test_ex,
+            C=args.C, bootstrap=args.bootstrap, seed=args.seed,
+            transfer_examples=transfer_ex,
+            threshold_frac=args.threshold_frac,
+            return_model=args.show_top_features and name == "all",
+        )
+        if args.show_top_features and name == "all":
+            r, clf, scaler = out
+            top_feature_model = clf
+        else:
+            r = out
         results.append(r)
         print_result(r)
 
-    if args.show_top_features and "all" in sets_to_run:
-        print_top_features(results, train_ex, feature_set="all")
+    if args.show_top_features and top_feature_model is not None:
+        print_top_features(top_feature_model, train_ex, feature_set="all")
 
     maybe_save_results(results, args.results_path)
 

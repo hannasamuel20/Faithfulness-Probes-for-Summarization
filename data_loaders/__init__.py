@@ -8,11 +8,13 @@ Each loader is a generator that yields dicts with at minimum:
 """
 
 from data_loaders.aggrefact import load_aggrefact_csv
-from data_loaders.jsonl import load_jsonl
+from data_loaders.jsonl import load_jsonl, load_xsum_jsonl
 
 
 def load_data(data_type, data_path, limit=None, split=None):
     """Dispatch to the right loader based on data_type."""
     if data_type == "aggrefact":
         return load_aggrefact_csv(data_path, limit=limit, split=split)
+    if data_type == "xsum":
+        return load_xsum_jsonl(data_path, limit=limit)
     return load_jsonl(data_path, limit=limit)

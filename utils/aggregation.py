@@ -133,3 +133,13 @@ def temporal_all_matrix(ex) -> torch.Tensor:
         ex["logit_top_margin"].float(),
     ], dim=0)                                                  # (3, T)
     return torch.cat([lb, ae, lg], dim=0)
+
+
+def temporal_lookback_entropy_matrix(ex) -> torch.Tensor:
+    """
+    Concat lookback ratio and attention entropy streams:
+        lookback_ratio (L*H) + attn_entropy (L*H) → (2*L*H, T).
+    """
+    lb = temporal_lookback_matrix(ex)
+    ae = ex["attn_entropy"].reshape(lb.shape[0], -1).float()
+    return torch.cat([lb, ae], dim=0)
