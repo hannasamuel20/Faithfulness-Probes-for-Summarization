@@ -1,0 +1,7 @@
+error_type,n,caught,recall
+extrinsic-NP,50,36,0.72
+extrinsic-entire_sent,2,2,1.0
+extrinsic-predicate,15,8,0.5333333333333333
+intrinsic-NP,30,10,0.3333333333333333
+intrinsic-entire_sent,2,2,1.0
+intrinsic-predicate,6,3,0.5

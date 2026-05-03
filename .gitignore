@@ -8,3 +8,13 @@ __pycache__/
 !results/*.pdf
 !results/*.png
 data/xsum/hf_cache/
+.venv/
+venv/
+env/
+*.env
+*.log
+*.pt
+results/*.pt
+results/seed_variance/*.pt
+data/xsum/hf_cache/
+.env

@@ -1,0 +1,105 @@
+{
+  "args": {
+    "features": "features_aggrefact_sota.pt",
+    "transfer_features": "results/features_xsum.pt",
+    "transfer_label": "XSum",
+    "train_split": "val",
+    "test_split": "test",
+    "seeds": [
+      0,
+      1,
+      2
+    ],
+    "results_path": "results/step04_seed_variance.json",
+    "checkpoint_dir": "results/seed_variance",
+    "hidden": 64,
+    "dropout": 0.3,
+    "epochs": 60,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "patience": 10,
+    "val_frac": 0.15,
+    "balance_loss": false,
+    "max_T": 256,
+    "bootstrap": 0,
+    "device": "cuda",
+    "log_every": 1
+  },
+  "probes": {
+    "cnn+lookback": {
+      "per_seed": [
+        {
+          "seed": 0,
+          "test_auroc": 0.8308529891263705,
+          "transfer_auroc": 0.6291660085294583
+        },
+        {
+          "seed": 1,
+          "test_auroc": 0.8168010290312449,
+          "transfer_auroc": 0.6220186384457431
+        },
+        {
+          "seed": 2,
+          "test_auroc": 0.8064882813084253,
+          "transfer_auroc": 0.6826330753435477
+        }
+      ],
+      "test_auroc": {
+        "mean": 0.8180474331553468,
+        "std": 0.012230081324091589,
+        "values": [
+          0.8308529891263705,
+          0.8168010290312449,
+          0.8064882813084253
+        ]
+      },
+      "transfer_auroc": {
+        "mean": 0.644605907439583,
+        "std": 0.03312582601046555,
+        "values": [
+          0.6291660085294583,
+          0.6220186384457431,
+          0.6826330753435477
+        ]
+      }
+    },
+    "lstm+all": {
+      "per_seed": [
+        {
+          "seed": 0,
+          "test_auroc": 0.7600771773433644,
+          "transfer_auroc": 0.5849391881219397
+        },
+        {
+          "seed": 1,
+          "test_auroc": 0.7237843820577634,
+          "transfer_auroc": 0.495735270889275
+        },
+        {
+          "seed": 2,
+          "test_auroc": 0.7835631702538177,
+          "transfer_auroc": 0.6673511293634498
+        }
+      ],
+      "test_auroc": {
+        "mean": 0.7558082432183152,
+        "std": 0.030117166674011486,
+        "values": [
+          0.7600771773433644,
+          0.7237843820577634,
+          0.7835631702538177
+        ]
+      },
+      "transfer_auroc": {
+        "mean": 0.5826751961248882,
+        "std": 0.08583032660300804,
+        "values": [
+          0.5849391881219397,
+          0.495735270889275,
+          0.6673511293634498
+        ]
+      }
+    }
+  }
+}
