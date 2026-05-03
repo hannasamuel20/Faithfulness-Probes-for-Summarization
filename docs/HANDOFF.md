@@ -462,4 +462,3 @@ Compare validation-selected F1 against test-selected F1 in the report. AUROC/AUP
 Investigate why mean lookback and attention entropy are weak/flipped on XSum while logit confidence features retain the expected direction.
 
 Classifier-guided decoding from the proposal remains a stretch goal. It is lower priority than interpreting the completed transfer and error-analysis results .
-
