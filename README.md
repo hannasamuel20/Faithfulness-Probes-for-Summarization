@@ -50,4 +50,10 @@ python step03_temporal_probes.py \
     --features features_aggrefact_sota.pt \
     --model lstm \
     --channels all
+
+# Temporal lookback + attention entropy (no logit streams)
+python step03_temporal_probes.py \
+    --features features_aggrefact_sota.pt \
+    --model cnn \
+    --channels lookback_entropy
 ```

@@ -8,8 +8,9 @@ lookback-ratio sequence beat the mean-pooled Lookback-Lens baseline?
 Pipeline:
   - Load per-token features produced by step01_extract_features.py.
   - Build (C, T) sequences per span, where C is either:
-        lookback  : L*H channels (lookback ratio only — paper-faithful)
-        all       : 2*L*H + 3 channels (+ entropy + 3 logit streams)
+        lookback         : L*H channels (lookback ratio only — paper-faithful)
+        lookback_entropy : 2*L*H channels (+ attention entropy, no logits)
+        all              : 2*L*H + 3 channels (+ entropy + 3 logit streams)
   - Pad to the longest span in each batch, track validity mask.
   - Train CNN / LSTM with BCEWithLogits, AdamW, early-stop on val AUROC.
   - Report AUROC / AUPRC / F1@opt on Train + Test, and Transfer if a
@@ -43,9 +44,9 @@ from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
 from utils.aggregation import (
-    temporal_lookback_matrix,
     temporal_all_matrix,
     temporal_lookback_entropy_matrix,
+    temporal_lookback_matrix,
 )
 from utils.evaluation import (
     evaluate_scores, bootstrap_auroc, format_row,

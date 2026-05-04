@@ -119,14 +119,20 @@ def temporal_lookback_matrix(ex) -> torch.Tensor:
     return ex["lookback_ratio"].reshape(L * H, T).float()
 
 
+def temporal_lookback_entropy_matrix(ex) -> torch.Tensor:
+    """Lookback ratio + attention entropy: (L*H, T) each → (2*L*H, T)."""
+    lb = temporal_lookback_matrix(ex)
+    ae = ex["attn_entropy"].reshape(lb.shape[0], -1).float()
+    return torch.cat([lb, ae], dim=0)
+
+
 def temporal_all_matrix(ex) -> torch.Tensor:
     """
     Concat all per-token feature streams along the channel dim:
         lookback_ratio (L*H) + attn_entropy (L*H) + 3 logit streams
         → (2*L*H + 3, T).
     """
-    lb = temporal_lookback_matrix(ex)                         # (L*H, T)
-    ae = ex["attn_entropy"].reshape(lb.shape[0], -1).float()  # (L*H, T)
+    lb_ae = temporal_lookback_entropy_matrix(ex)               # (2*L*H, T)
     lg = torch.stack([
         ex["logit_chosen_prob"].float(),
         ex["logit_output_entropy"].float(),
