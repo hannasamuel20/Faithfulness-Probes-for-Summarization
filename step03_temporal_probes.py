@@ -8,8 +8,9 @@ lookback-ratio sequence beat the mean-pooled Lookback-Lens baseline?
 Pipeline:
   - Load per-token features produced by step01_extract_features.py.
   - Build (C, T) sequences per span, where C is either:
-        lookback  : L*H channels (lookback ratio only — paper-faithful)
-        all       : 2*L*H + 3 channels (+ entropy + 3 logit streams)
+        lookback         : L*H channels (lookback ratio only — paper-faithful)
+        lookback_entropy : 2*L*H channels (+ attention entropy, no logits)
+        all              : 2*L*H + 3 channels (+ entropy + 3 logit streams)
   - Pad to the longest span in each batch, track validity mask.
   - Train CNN / LSTM with BCEWithLogits, AdamW, early-stop on val AUROC.
   - Report AUROC / AUPRC / F1@opt on Train + Test, and Transfer if a
@@ -42,7 +43,11 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 
-from utils.aggregation import temporal_lookback_matrix, temporal_all_matrix
+from utils.aggregation import (
+    temporal_all_matrix,
+    temporal_lookback_entropy_matrix,
+    temporal_lookback_matrix,
+)
 from utils.evaluation import (
     evaluate_scores, bootstrap_auroc, format_row,
     format_paper_row, format_paper_header,
@@ -55,8 +60,9 @@ from models.temporal_probes import LookbackCNN, LookbackLSTM, count_params
 # ────────────────────────────────────────────────────────────────────────
 
 CHANNEL_BUILDERS = {
-    "lookback": temporal_lookback_matrix,    # (L*H, T)
-    "all":      temporal_all_matrix,         # (2*L*H + 3, T)
+    "lookback":          temporal_lookback_matrix,         # (L*H, T)
+    "lookback_entropy":  temporal_lookback_entropy_matrix,  # (2*L*H, T)
+    "all":               temporal_all_matrix,              # (2*L*H + 3, T)
 }
 
 
@@ -336,8 +342,8 @@ def parse_args():
 
     p.add_argument("--model", choices=["cnn", "lstm"], default="cnn")
     p.add_argument("--channels", choices=list(CHANNEL_BUILDERS), default="lookback",
-                   help="lookback: just lookback ratio (L*H). "
-                        "all: + attn_entropy + 3 logit streams.")
+                   help="lookback: L*H. lookback_entropy: + attn_entropy (2*L*H). "
+                        "all: + 3 logit streams (2*L*H + 3).")
     p.add_argument("--hidden", type=int, default=64)
     p.add_argument("--dropout", type=float, default=0.3)
 
