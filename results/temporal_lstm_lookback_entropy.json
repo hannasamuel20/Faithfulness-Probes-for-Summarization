@@ -1,0 +1,61 @@
+{
+  "args": {
+    "features": "/projectnb/cs505am/students/hannasam/Faithfulness-Probes-for-Summarization/features_aggrefact_fixed.pt",
+    "transfer_features": "transfer/nq_features_labeled.pt",
+    "transfer_label": "NQ",
+    "train_split": "val",
+    "test_split": "test",
+    "model": "lstm",
+    "channels": "lookback_entropy",
+    "hidden": 64,
+    "dropout": 0.3,
+    "epochs": 60,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "patience": 10,
+    "val_frac": 0.15,
+    "balance_loss": false,
+    "max_T": 256,
+    "bootstrap": 1000,
+    "seed": 0,
+    "device": "cuda",
+    "log_every": 1,
+    "results_path": "results/temporal_lstm_lookback_entropy.json",
+    "save_model": "results/model_lstm_lookback_entropy.pt"
+  },
+  "best_val_auroc": 0.9329863370201691,
+  "train": {
+    "n": 2375,
+    "pos_rate": 0.5941052631578947,
+    "auroc": 0.9208004828687462,
+    "auprc": 0.9447530724312424,
+    "f1_opt": 0.8778809769521845,
+    "thr_opt": -1.3534501791000366
+  },
+  "test": {
+    "n": 1547,
+    "pos_rate": 0.7343244990303813,
+    "auroc": 0.8701927195778074,
+    "auprc": 0.9476376076534583,
+    "f1_opt": 0.884076433121019,
+    "thr_opt": -1.3421615362167358
+  },
+  "transfer": {
+    "n": 1739,
+    "pos_rate": 0.5491661874640598,
+    "auroc": 0.621871994871247,
+    "auprc": 0.6535137974216848,
+    "f1_opt": 0.7113285660519383,
+    "thr_opt": -1.3757832050323486
+  },
+  "test_auroc_ci95": [
+    0.8503299142862183,
+    0.8896120085356904
+  ],
+  "in_channels": 2048,
+  "n_params": 1090689,
+  "n_train": 2375,
+  "n_test": 1547,
+  "n_transfer": 1739
+}

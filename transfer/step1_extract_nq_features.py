@@ -21,6 +21,7 @@ All NQ examples are assigned split="test" since they are transfer-only.
 """
 
 import json, os, torch, logging, datetime
+import numpy as np
 from tqdm import tqdm
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from huggingface_hub import login
@@ -31,7 +32,7 @@ login(token=os.environ["HF_TOKEN"])
 MODEL_NAME     = "meta-llama/Llama-2-7b-chat-hf"
 NQ_PATH        = "/projectnb/cs505am/students/hannasam/Faithfulness-Probes-for-Summarization/data/nq-open-10_total_documents_gold_at_4.jsonl"
 ANNO_PATH      = "/projectnb/cs505am/students/hannasam/Faithfulness-Probes-for-Summarization/transfer/nq_annotated.jsonl"
-OUT_PATH       = "/projectnb/cs505am/students/hannasam/Faithfulness-Probes-for-Summarization/transfer/nq_features_full.pt"
+OUT_PATH       = "/projectnb/cs505am/students/hannasam/Faithfulness-Probes-for-Summarization/transfer/nq_features_full_v2.pt"
 MAX_NEW_TOKENS = 100
 
 os.makedirs("logs", exist_ok=True)
@@ -57,24 +58,34 @@ def build_prompt(question, ctxs):
 
 # ── Feature extraction helpers ──
 def compute_lookback_ratio(attn, prompt_len):
-    """attn: (H, seq_len) -> (H,) lookback ratio per head"""
-    ctx_attn = attn[:, :prompt_len].sum(dim=-1)
-    gen_attn = attn[:, prompt_len:].sum(dim=-1)
-    return ctx_attn / (ctx_attn + gen_attn + 1e-9)
+    """attn: (H, seq_len) -> (H,) lookback ratio per head.
+    Uses mean() to match Lookback Lens (Chuang et al. 2024) exactly —
+    mean normalizes by sequence length so longer contexts don't
+    artificially inflate the ratio.
+    """
+    ctx_attn = attn[:, :prompt_len].mean(dim=-1)   # mean, not sum
+    gen_attn = attn[:, prompt_len:].mean(dim=-1)   # mean, not sum
+    ratio = ctx_attn / (ctx_attn + gen_attn + 1e-9)
+    return torch.nan_to_num(ratio, nan=0.0, posinf=1.0, neginf=0.0)
 
 def compute_attn_entropy(attn):
     """attn: (H, seq_len) -> (H,) entropy per head"""
     p = attn.clamp(min=1e-9)
-    return -(p * p.log()).sum(dim=-1)
+    entropy = -(p * p.log()).sum(dim=-1)
+    return torch.nan_to_num(entropy, nan=0.0, posinf=0.0, neginf=0.0)
 
 def compute_logit_features(logits_step, chosen_id):
     """logits_step: (vocab_size,) -> chosen_prob, output_entropy, top_margin"""
-    probs = torch.softmax(logits_step, dim=-1)
+    probs = torch.softmax(logits_step.float(), dim=-1)  # float32 for stability
     chosen_prob = probs[chosen_id].item()
     p = probs.clamp(min=1e-9)
     output_entropy = -(p * p.log()).sum().item()
     top2 = torch.topk(probs, k=2).values
     top_margin = (top2[0] - top2[1]).item()
+    # guard against NaN/inf
+    chosen_prob    = 0.0 if (np.isnan(chosen_prob)    or np.isinf(chosen_prob))    else chosen_prob
+    output_entropy = 0.0 if (np.isnan(output_entropy) or np.isinf(output_entropy)) else output_entropy
+    top_margin     = 0.0 if (np.isnan(top_margin)     or np.isinf(top_margin))     else top_margin
     return chosen_prob, output_entropy, top_margin
 
 # ── Load model ──
@@ -132,6 +143,13 @@ with torch.no_grad():
         inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
         prompt_len = inputs["input_ids"].shape[1]
 
+        # Fix 2: match Lookback Lens context boundary — subtract response
+        # prefix tokens ("[/INST]") so the lookback ratio boundary sits
+        # before the response marker, matching their extra_prompt_length logic.
+        response_prefix_ids = tokenizer("[/INST]", add_special_tokens=False)["input_ids"]
+        extra_prompt_length = len(response_prefix_ids)
+        context_len = max(1, prompt_len - extra_prompt_length)
+
         try:
             out = model.generate(
                 **inputs,
@@ -167,7 +185,7 @@ with torch.no_grad():
             ent_per_layer = []
             for layer_attn in step_attns:
                 attn = layer_attn[0, :, 0, :]  # (H, seq_len)
-                lr_per_layer.append(compute_lookback_ratio(attn, prompt_len))
+                lr_per_layer.append(compute_lookback_ratio(attn, context_len))
                 ent_per_layer.append(compute_attn_entropy(attn))
 
             lookback_steps.append(torch.stack(lr_per_layer))   # (L, H)
@@ -186,6 +204,17 @@ with torch.no_grad():
         logit_chosen_prob     = torch.tensor(chosen_probs,     dtype=torch.float32)
         logit_output_entropy  = torch.tensor(output_entropies, dtype=torch.float32)
         logit_top_margin      = torch.tensor(top_margins,      dtype=torch.float32)
+
+        # Final NaN check — replace any remaining NaNs with 0
+        lookback_ratio       = torch.nan_to_num(lookback_ratio,      nan=0.0)
+        attn_entropy         = torch.nan_to_num(attn_entropy,         nan=0.0)
+        logit_chosen_prob    = torch.nan_to_num(logit_chosen_prob,    nan=0.0)
+        logit_output_entropy = torch.nan_to_num(logit_output_entropy, nan=0.0)
+        logit_top_margin     = torch.nan_to_num(logit_top_margin,     nan=0.0)
+
+        # Log if any NaNs were found
+        if torch.isnan(torch.stack([lookback_ratio, attn_entropy])).any():
+            logging.warning(f"NaN detected in attention features for: {question[:60]}")
 
         results.append({
             "lookback_ratio":       lookback_ratio,
