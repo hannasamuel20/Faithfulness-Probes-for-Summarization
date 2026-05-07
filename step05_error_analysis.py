@@ -118,6 +118,35 @@ def write_dataset_breakdown(path, examples, scores, threshold):
     pd.DataFrame(rows).to_csv(path, index=False)
 
 
+def write_model_breakdown(path, examples, scores, threshold):
+    rows = []
+    by_model = defaultdict(list)
+    for i, ex in enumerate(examples):
+        by_model[ex.get("source_model", "?")].append(i)
+
+    for model, idxs in sorted(by_model.items()):
+        y = np.array([examples[i]["label"] for i in idxs], dtype=int)
+        s = np.array([scores[i] for i in idxs], dtype=float)
+        pred_hallu = s < threshold
+        faithful = y == 1
+        hallu = y == 0
+        fp_rate = float((pred_hallu & faithful).sum() / faithful.sum()) if faithful.sum() else float("nan")
+        fn_rate = float(((~pred_hallu) & hallu).sum() / hallu.sum()) if hallu.sum() else float("nan")
+        rows.append({
+            "source_model": model,
+            "n": int(len(idxs)),
+            "faithful": int(faithful.sum()),
+            "hallucinated": int(hallu.sum()),
+            "auroc": safe_metric(roc_auc_score, y, s),
+            "auprc": safe_metric(average_precision_score, y, s),
+            "false_positive_rate": fp_rate,
+            "false_negative_rate": fn_rate,
+        })
+
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    pd.DataFrame(rows).to_csv(path, index=False)
+
+
 def parse_error_types(value):
     if pd.isna(value):
         return []
@@ -259,10 +288,11 @@ def write_hard_examples(path, train_examples, test_examples, scores, threshold, 
 
 def parse_args():
     p = argparse.ArgumentParser(description="Step 5: CNN error analysis.")
-    p.add_argument("--features", default="results/features_aggrefact_sota.pt")
+    p.add_argument("--features", default="/projectnb/cs505am/projects/faithfulness_probe/features_aggrefact_sota.pt")
     p.add_argument("--model-path", default="results/cnn_lookback.pt")
     p.add_argument("--mapping-dir", default="data/error_type_mapping")
     p.add_argument("--dataset-csv", default="results/error_breakdown_by_dataset.csv")
+    p.add_argument("--model-csv", default="results/error_breakdown_by_model.csv")
     p.add_argument("--type-csv", default="results/error_breakdown_by_type.csv")
     p.add_argument("--hard-json", default="results/hard_examples.json")
     p.add_argument("--train-split", default="val")
@@ -298,9 +328,11 @@ def main():
     )
 
     write_dataset_breakdown(args.dataset_csv, test_ex, s_test, threshold)
+    write_model_breakdown(args.model_csv, test_ex, s_test, threshold)
     write_type_breakdown(args.type_csv, test_ex, s_test, threshold, args.mapping_dir)
     write_hard_examples(args.hard_json, train_ex, test_ex, s_test, threshold, args.seed)
     print(f"Saved dataset breakdown -> {args.dataset_csv}")
+    print(f"Saved model breakdown  -> {args.model_csv}")
     print(f"Saved error-type breakdown -> {args.type_csv}")
     print(f"Saved hard examples -> {args.hard_json}")
 
