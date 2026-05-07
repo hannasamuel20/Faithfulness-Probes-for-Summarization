@@ -1,0 +1,75 @@
+{
+  "args": {
+    "features": "results/features_aggrefact_filtered.pt",
+    "transfer_features": "results/features_xsum.pt",
+    "transfer_label": "xsum",
+    "train_split": "val",
+    "test_split": "test",
+    "model": "lstm",
+    "channels": "lookback",
+    "hidden": 64,
+    "dropout": 0.3,
+    "epochs": 60,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "patience": 10,
+    "val_frac": 0.15,
+    "balance_loss": false,
+    "max_T": 256,
+    "bootstrap": 1000,
+    "seed": 0,
+    "device": "cuda",
+    "log_every": 1,
+    "results_path": "results/xsum/temporal_lstm_lookback.json",
+    "save_model": "results/xsum/model_lstm_lookback.pt"
+  },
+  "best_val_auroc": 0.8535513361462729,
+  "threshold_selection": {
+    "n": 194,
+    "pos_rate": 0.8144329896907216,
+    "auroc": 0.8535513361462729,
+    "auprc": 0.9592822289857174,
+    "f1_opt": 0.9239766081871346,
+    "thr_opt": -1.0133905410766602
+  },
+  "train": {
+    "n": 1287,
+    "pos_rate": 0.8135198135198135,
+    "auroc": 0.9349530404329831,
+    "auprc": 0.9825490175091227,
+    "f1_opt": 0.9472209248014946,
+    "thr_opt": 0.03594176471233368,
+    "f1_at_val_threshold": 0.9267643142476698,
+    "val_threshold": -1.0133905410766602
+  },
+  "test": {
+    "n": 1142,
+    "pos_rate": 0.8117338003502627,
+    "auroc": 0.8832618348761947,
+    "auprc": 0.9671524981356525,
+    "f1_opt": 0.9238736406007251,
+    "thr_opt": 0.05890951305627823,
+    "f1_at_val_threshold": 0.9072063178677197,
+    "val_threshold": -1.0133905410766602
+  },
+  "transfer": {
+    "n": 1000,
+    "pos_rate": 0.026,
+    "auroc": 0.5967066814089402,
+    "auprc": 0.10683706642080518,
+    "f1_opt": 0.13793103448275862,
+    "thr_opt": 3.718637228012085,
+    "f1_at_val_threshold": 0.04941176470588235,
+    "val_threshold": -1.0133905410766602
+  },
+  "test_auroc_ci95": [
+    0.8574610353525335,
+    0.9066477911251755
+  ],
+  "in_channels": 1024,
+  "n_params": 566401,
+  "n_train": 1287,
+  "n_test": 1142,
+  "n_transfer": 1000
+}

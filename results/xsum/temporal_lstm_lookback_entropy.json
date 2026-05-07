@@ -1,0 +1,75 @@
+{
+  "args": {
+    "features": "results/features_aggrefact_filtered.pt",
+    "transfer_features": "results/features_xsum.pt",
+    "transfer_label": "xsum",
+    "train_split": "val",
+    "test_split": "test",
+    "model": "lstm",
+    "channels": "lookback+entropy",
+    "hidden": 64,
+    "dropout": 0.3,
+    "epochs": 60,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "patience": 10,
+    "val_frac": 0.15,
+    "balance_loss": false,
+    "max_T": 256,
+    "bootstrap": 1000,
+    "seed": 0,
+    "device": "cuda",
+    "log_every": 1,
+    "results_path": "results/xsum/temporal_lstm_lookback+entropy.json",
+    "save_model": "results/xsum/model_lstm_lookback+entropy.pt"
+  },
+  "best_val_auroc": 0.6860935302390998,
+  "threshold_selection": {
+    "n": 194,
+    "pos_rate": 0.8144329896907216,
+    "auroc": 0.6860935302390998,
+    "auprc": 0.906325590145461,
+    "f1_opt": 0.9002849002849003,
+    "thr_opt": 1.4822051525115967
+  },
+  "train": {
+    "n": 1287,
+    "pos_rate": 0.8135198135198135,
+    "auroc": 0.6924446832219038,
+    "auprc": 0.903730337664786,
+    "f1_opt": 0.897172236503856,
+    "thr_opt": 1.4821243286132812,
+    "f1_at_val_threshold": 0.8948507139766335,
+    "val_threshold": 1.4822051525115967
+  },
+  "test": {
+    "n": 1142,
+    "pos_rate": 0.8117338003502627,
+    "auroc": 0.6147412257595143,
+    "auprc": 0.8724315773655476,
+    "f1_opt": 0.8969521044992743,
+    "thr_opt": 1.4821792840957642,
+    "f1_at_val_threshold": 0.8931000971817298,
+    "val_threshold": 1.4822051525115967
+  },
+  "transfer": {
+    "n": 1000,
+    "pos_rate": 0.026,
+    "auroc": 0.5529932080240089,
+    "auprc": 0.033794190209150074,
+    "f1_opt": 0.07692307692307693,
+    "thr_opt": 1.4833532571792603,
+    "f1_at_val_threshold": 0.052104208416833664,
+    "val_threshold": 1.4822051525115967
+  },
+  "test_auroc_ci95": [
+    0.5751744502845813,
+    0.6535280536859185
+  ],
+  "in_channels": 2048,
+  "n_params": 1090689,
+  "n_train": 1287,
+  "n_test": 1142,
+  "n_transfer": 1000
+}

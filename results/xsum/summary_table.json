@@ -1,0 +1,196 @@
+[
+  {
+    "probe": "random",
+    "type": "static",
+    "train": null,
+    "test": 0.49839692932941976,
+    "transfer": 0.5166640341178329,
+    "n_train": 0,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "output_prob_only",
+    "type": "static",
+    "train": 0.833484559057625,
+    "test": 0.8304759037655853,
+    "transfer": 0.6049992102353499,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "lookback_lens",
+    "type": "static",
+    "train": 0.9802769818529131,
+    "test": 0.8717794335315221,
+    "transfer": 0.7030090033170115,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "lookback_full",
+    "type": "static",
+    "train": 0.9807784145176696,
+    "test": 0.8748199994982564,
+    "transfer": 0.613094297899226,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "attn_entropy_full",
+    "type": "static",
+    "train": 0.9781916587074181,
+    "test": 0.8779257921276435,
+    "transfer": 0.5744748065076607,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "logits_full",
+    "type": "static",
+    "train": 0.8664915631964343,
+    "test": 0.8456135069366046,
+    "transfer": 0.6354841257305324,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "lookback+entropy",
+    "type": "static",
+    "train": 0.9818250557147405,
+    "test": 0.8887835227415268,
+    "transfer": 0.5679592481440531,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "lookback+logits",
+    "type": "static",
+    "train": 0.9801774912448266,
+    "test": 0.8783422392815032,
+    "transfer": 0.615029221292055,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "entropy+logits",
+    "type": "static",
+    "train": 0.9774076727156956,
+    "test": 0.8788991746318455,
+    "transfer": 0.5864792291897015,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "all",
+    "type": "static",
+    "train": 0.9817971983444763,
+    "test": 0.8890946037480244,
+    "transfer": 0.5758568946453957,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": null
+  },
+  {
+    "probe": "cnn+lookback",
+    "type": "temporal",
+    "train": 0.9640639923591214,
+    "test": 0.9023807731868242,
+    "transfer": 0.6485547306902543,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": [
+      0.880022090390595,
+      0.9220607955999754
+    ]
+  },
+  {
+    "probe": "cnn+lookback_entropy",
+    "type": "temporal",
+    "train": 0.9266276663482966,
+    "test": 0.8694387998294072,
+    "transfer": 0.5347496446059075,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": [
+      0.8428460220093088,
+      0.8934541015427374
+    ]
+  },
+  {
+    "probe": "cnn+all",
+    "type": "temporal",
+    "train": 0.9124303565743395,
+    "test": 0.8703444469531623,
+    "transfer": 0.5682356657716001,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": [
+      0.844831401977482,
+      0.8932096290793188
+    ]
+  },
+  {
+    "probe": "lstm+lookback",
+    "type": "temporal",
+    "train": 0.9349530404329831,
+    "test": 0.8832618348761947,
+    "transfer": 0.5967066814089402,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": [
+      0.8574610353525335,
+      0.9066477911251755
+    ]
+  },
+  {
+    "probe": "lstm+lookback_entropy",
+    "type": "temporal",
+    "train": 0.6924446832219038,
+    "test": 0.6147412257595143,
+    "transfer": 0.5529932080240089,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": [
+      0.5751744502845813,
+      0.6535280536859185
+    ]
+  },
+  {
+    "probe": "lstm+all",
+    "type": "temporal",
+    "train": 0.7506685768863418,
+    "test": 0.7413135646371141,
+    "transfer": 0.4694755962723109,
+    "n_train": 1287,
+    "n_test": 1142,
+    "n_transfer": 1000,
+    "test_ci95": [
+      0.7090332591678157,
+      0.7737380952126105
+    ]
+  }
+]

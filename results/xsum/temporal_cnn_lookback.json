@@ -1,0 +1,75 @@
+{
+  "args": {
+    "features": "results/features_aggrefact_filtered.pt",
+    "transfer_features": "results/features_xsum.pt",
+    "transfer_label": "xsum",
+    "train_split": "val",
+    "test_split": "test",
+    "model": "cnn",
+    "channels": "lookback",
+    "hidden": 64,
+    "dropout": 0.3,
+    "epochs": 60,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "patience": 10,
+    "val_frac": 0.15,
+    "balance_loss": false,
+    "max_T": 256,
+    "bootstrap": 1000,
+    "seed": 0,
+    "device": "cuda",
+    "log_every": 1,
+    "results_path": "results/xsum/temporal_cnn_lookback.json",
+    "save_model": "results/xsum/model_cnn_lookback.pt"
+  },
+  "best_val_auroc": 0.8885372714486639,
+  "threshold_selection": {
+    "n": 194,
+    "pos_rate": 0.8144329896907216,
+    "auroc": 0.8885372714486639,
+    "auprc": 0.9729742298126305,
+    "f1_opt": 0.923076923076923,
+    "thr_opt": -1.3450050354003906
+  },
+  "train": {
+    "n": 1287,
+    "pos_rate": 0.8135198135198135,
+    "auroc": 0.9640639923591214,
+    "auprc": 0.9910994475403974,
+    "f1_opt": 0.9620493358633776,
+    "thr_opt": -1.1161038875579834,
+    "f1_at_val_threshold": 0.9568480300187617,
+    "val_threshold": -1.3450050354003906
+  },
+  "test": {
+    "n": 1142,
+    "pos_rate": 0.8117338003502627,
+    "auroc": 0.9023807731868242,
+    "auprc": 0.9730229888068918,
+    "f1_opt": 0.9296668429402432,
+    "thr_opt": -0.9617162346839905,
+    "f1_at_val_threshold": 0.9277922077922078,
+    "val_threshold": -1.3450050354003906
+  },
+  "transfer": {
+    "n": 1000,
+    "pos_rate": 0.026,
+    "auroc": 0.6485547306902543,
+    "auprc": 0.08200285232404292,
+    "f1_opt": 0.23728813559322037,
+    "thr_opt": 1.4206433296203613,
+    "f1_at_val_threshold": 0.08797653958944282,
+    "val_threshold": -1.3450050354003906
+  },
+  "test_auroc_ci95": [
+    0.880022090390595,
+    0.9220607955999754
+  ],
+  "in_channels": 1024,
+  "n_params": 532737,
+  "n_train": 1287,
+  "n_test": 1142,
+  "n_transfer": 1000
+}
