@@ -1,0 +1,98 @@
+[
+  {
+    "probe": "cnn+lookback",
+    "n_seeds": 3,
+    "seed_files": [
+      "results/seed_variance_full_aggrefact/cnn+lookback_seed0.json",
+      "results/seed_variance_full_aggrefact/cnn+lookback_seed1.json",
+      "results/seed_variance_full_aggrefact/cnn+lookback_seed2.json"
+    ],
+    "test_auroc_per_seed": [
+      0.8805879681984853,
+      0.8979815633460129,
+      0.8831731263493369
+    ],
+    "test_auroc_mean": 0.8872475526312783,
+    "test_auroc_std": 0.0076631151274250235
+  },
+  {
+    "probe": "cnn+lookback+entropy",
+    "n_seeds": 3,
+    "seed_files": [
+      "results/seed_variance_full_aggrefact/cnn+lookback+entropy_seed0.json",
+      "results/seed_variance_full_aggrefact/cnn+lookback+entropy_seed1.json",
+      "results/seed_variance_full_aggrefact/cnn+lookback+entropy_seed2.json"
+    ],
+    "test_auroc_per_seed": [
+      0.8699346321236422,
+      0.8097552774065315,
+      0.8722606319180288
+    ],
+    "test_auroc_mean": 0.8506501804827342,
+    "test_auroc_std": 0.028932650437062495
+  },
+  {
+    "probe": "cnn+all",
+    "n_seeds": 3,
+    "seed_files": [
+      "results/seed_variance_full_aggrefact/cnn+all_seed0.json",
+      "results/seed_variance_full_aggrefact/cnn+all_seed1.json",
+      "results/seed_variance_full_aggrefact/cnn+all_seed2.json"
+    ],
+    "test_auroc_per_seed": [
+      0.8729931290908468,
+      0.8620260186422672,
+      0.8632671944073198
+    ],
+    "test_auroc_mean": 0.8660954473801447,
+    "test_auroc_std": 0.004903647557791721
+  },
+  {
+    "probe": "lstm+lookback",
+    "n_seeds": 3,
+    "seed_files": [
+      "results/seed_variance_full_aggrefact/lstm+lookback_seed0.json",
+      "results/seed_variance_full_aggrefact/lstm+lookback_seed1.json",
+      "results/seed_variance_full_aggrefact/lstm+lookback_seed2.json"
+    ],
+    "test_auroc_per_seed": [
+      0.8878133460128166,
+      0.8754251482128783,
+      0.8908557794455296
+    ],
+    "test_auroc_mean": 0.8846980912237415,
+    "test_auroc_std": 0.006673564982334402
+  },
+  {
+    "probe": "lstm+lookback+entropy",
+    "n_seeds": 3,
+    "seed_files": [
+      "results/seed_variance_full_aggrefact/lstm+lookback+entropy_seed0.json",
+      "results/seed_variance_full_aggrefact/lstm+lookback+entropy_seed1.json",
+      "results/seed_variance_full_aggrefact/lstm+lookback+entropy_seed2.json"
+    ],
+    "test_auroc_per_seed": [
+      0.8589921524279496,
+      0.8605331808368459,
+      0.7908227956547068
+    ],
+    "test_auroc_mean": 0.8367827096398341,
+    "test_auroc_std": 0.03250465568991085
+  },
+  {
+    "probe": "lstm+all",
+    "n_seeds": 3,
+    "seed_files": [
+      "results/seed_variance_full_aggrefact/lstm+all_seed0.json",
+      "results/seed_variance_full_aggrefact/lstm+all_seed1.json",
+      "results/seed_variance_full_aggrefact/lstm+all_seed2.json"
+    ],
+    "test_auroc_per_seed": [
+      0.8516725352112676,
+      0.8686709674103013,
+      0.8527006014187314
+    ],
+    "test_auroc_mean": 0.8576813680134334,
+    "test_auroc_std": 0.007782146285332027
+  }
+]

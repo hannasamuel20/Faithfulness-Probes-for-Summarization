@@ -1,0 +1,66 @@
+{
+  "args": {
+    "features": "/projectnb/cs505am/projects/faithfulness_probe/features_aggrefact_final.pt",
+    "transfer_features": null,
+    "transfer_label": "XSum",
+    "train_split": "val",
+    "test_split": "test",
+    "model": "lstm",
+    "channels": "lookback",
+    "hidden": 64,
+    "dropout": 0.3,
+    "epochs": 60,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 32,
+    "patience": 10,
+    "val_frac": 0.15,
+    "balance_loss": false,
+    "max_T": 256,
+    "bootstrap": 1000,
+    "seed": 2,
+    "device": "cuda",
+    "log_every": 1,
+    "results_path": "results/seed_variance_full_aggrefact/lstm+lookback_seed2.json",
+    "save_model": "results/seed_variance_full_aggrefact/lstm+lookback_seed2.pt"
+  },
+  "best_val_auroc": 0.8980481457384516,
+  "threshold_selection": {
+    "n": 357,
+    "pos_rate": 0.5938375350140056,
+    "auroc": 0.8980481457384516,
+    "auprc": 0.9294444991177163,
+    "f1_opt": 0.863849765258216,
+    "thr_opt": 2.0500435829162598
+  },
+  "train": {
+    "n": 2375,
+    "pos_rate": 0.5941052631578947,
+    "auroc": 0.9539348509488282,
+    "auprc": 0.9690000163395571,
+    "f1_opt": 0.9083889083889083,
+    "thr_opt": 1.6128005981445312,
+    "f1_at_val_threshold": 0.9028985507246376,
+    "val_threshold": 2.0500435829162598
+  },
+  "test": {
+    "n": 1547,
+    "pos_rate": 0.7343244990303813,
+    "auroc": 0.8908557794455296,
+    "auprc": 0.954815366991391,
+    "f1_opt": 0.8951279933938894,
+    "thr_opt": 0.7418185472488403,
+    "f1_at_val_threshold": 0.8872113676731794,
+    "val_threshold": 2.0500435829162598
+  },
+  "transfer": null,
+  "test_auroc_ci95": [
+    0.8741561088649037,
+    0.9062893511432273
+  ],
+  "in_channels": 1024,
+  "n_params": 566401,
+  "n_train": 2375,
+  "n_test": 1547,
+  "n_transfer": 0
+}
